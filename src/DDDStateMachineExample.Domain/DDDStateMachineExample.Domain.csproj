@@ -6,4 +6,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="OrderAggregate\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JustPlatform.Domain" Version="0.0.1" />
+  </ItemGroup>
+
 </Project>
