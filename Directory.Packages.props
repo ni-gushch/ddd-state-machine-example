@@ -1,3 +1,9 @@
 <Project>
+    <ItemGroup>
+        <!-- Microsoft packages -->
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.3"/>
+
+        <PackageVersion Include="JustPlatform.Domain" Version="0.0.1"/>
+    </ItemGroup>
 </Project>
 
