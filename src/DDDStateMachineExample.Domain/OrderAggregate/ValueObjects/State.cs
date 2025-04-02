@@ -1,3 +1,4 @@
+using DDDStateMachineExample.Domain.Common.Abstractions;
 using JustPlatform.Domain;
 
 namespace DDDStateMachineExample.Domain.OrderAggregate.ValueObjects;
@@ -5,7 +6,7 @@ namespace DDDStateMachineExample.Domain.OrderAggregate.ValueObjects;
 public record State(
     State.StateType Current,
     State.StatusType Status
-) : RecordValueObject
+) : RecordValueObject, IState<State.StateType>
 {
     protected override IEnumerable<object?> GetEqualityComponents()
     {

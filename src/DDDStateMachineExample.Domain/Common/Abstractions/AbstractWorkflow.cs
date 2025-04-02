@@ -1,17 +1,22 @@
-using DDDStateMachineExample.Domain.Common.Abstractions;
 using DDDStateMachineExample.Domain.Common.Models;
-using DDDStateMachineExample.Domain.OrderAggregate.Errors;
-using DDDStateMachineExample.Domain.OrderAggregate.ValueObjects;
+using JustPlatform.Domain;
 
-namespace DDDStateMachineExample.Domain.OrderAggregate.Workflows;
+namespace DDDStateMachineExample.Domain.Common.Abstractions;
 
-internal abstract class OrderWorkflow : IWorkflow<Order, State.StateType, long, OrderValidationResultType>
+internal abstract class AbstractWorkflow<TEntity, TId, TStateObject, TStateEnum, TEntityErrorType, TWorkflowTransition> 
+    : IWorkflow<TEntity, TId, TStateEnum, TEntityErrorType>
+    where TEntity : Entity<TId>, IEntityWithState<TStateObject, TStateEnum>
+    where TStateObject : IState<TStateEnum>
+    where TStateEnum : Enum
+    where TId : struct, IEquatable<TId>
+    where TEntityErrorType : Enum
+    where TWorkflowTransition : WorkflowTransition<TEntity, TId, TStateEnum, TEntityErrorType>
 {
-    protected readonly Dictionary<OrderStateTransition.TransitionKey, OrderStateTransition> Transitions = new();
+    protected readonly Dictionary<WorkflowTransition<TEntity, TId, TStateEnum, TEntityErrorType>.TransitionKey, TWorkflowTransition> Transitions = new();
     private readonly WorkflowTransitionsPipeline _pipeline = new();
 
     protected void AddTransition(
-        OrderStateTransition transition,
+        TWorkflowTransition transition,
         MoveDirection? moveDirection = null
     )
     {
@@ -44,14 +49,14 @@ internal abstract class OrderWorkflow : IWorkflow<Order, State.StateType, long, 
         }
     }
 
-    public async Task<MoveToStateResult<OrderValidationResultType>> MoveToState(
-        Order entityToMove,
-        State.StateType newState,
+    public async Task<MoveToStateResult<TEntityErrorType>> MoveToState(
+        TEntity entityToMove,
+        TStateEnum newState,
         CancellationToken token
     )
     {
         if (Transitions.TryGetValue(
-                new OrderStateTransition.TransitionKey(entityToMove.State.Current, newState),
+                new WorkflowTransition<TEntity, TId, TStateEnum, TEntityErrorType>.TransitionKey(entityToMove.State.Current, newState),
                 out var transition
             ))
         {
@@ -72,12 +77,12 @@ internal abstract class OrderWorkflow : IWorkflow<Order, State.StateType, long, 
 
             return transitionResult.IsError
                 ? transitionResult
-                : MoveToStateResult<OrderValidationResultType>.Ok;
+                : MoveToStateResult<TEntityErrorType>.Ok;
         }
 
-        return new MoveToStateResult<OrderValidationResultType>(
+        return new MoveToStateResult<TEntityErrorType>(
             IsError: true,
-            WorkflowProcessError<OrderValidationResultType>.TransitionNotFoundError(
+            WorkflowProcessError<TEntityErrorType>.TransitionNotFoundError(
                 entityToMove.State.Current.ToString(),
                 newState.ToString(),
                 entityToMove.Id.ToString()
@@ -85,47 +90,47 @@ internal abstract class OrderWorkflow : IWorkflow<Order, State.StateType, long, 
         );
     }
 
-    public async Task<MoveToStateResult<OrderValidationResultType>> MoveToNextState(
-        Order entityToMove,
+    public async Task<MoveToStateResult<TEntityErrorType>> MoveToNextState(
+        TEntity entityToMove,
         CancellationToken token
     )
     {
         var result = _pipeline.GetNextState(entityToMove);
         if (result.Item2 is not null)
-            return new MoveToStateResult<OrderValidationResultType>(IsError: true, result.Item2);
+            return new MoveToStateResult<TEntityErrorType>(IsError: true, result.Item2);
         if (Transitions.TryGetValue(result.Item1!, out var transition))
             return await DoWorkflowTransition(entityToMove, transition, token);
 
-        return new MoveToStateResult<OrderValidationResultType>(IsError: true,
-            WorkflowProcessError<OrderValidationResultType>.TransitionNotFoundError(
+        return new MoveToStateResult<TEntityErrorType>(IsError: true,
+            WorkflowProcessError<TEntityErrorType>.TransitionNotFoundError(
                 result.Item1!.TransitionFrom.ToString(),
                 result.Item1!.TransitionTo.ToString(),
                 entityToMove.Id.ToString()
             ));
     }
 
-    public async Task<MoveToStateResult<OrderValidationResultType>> MoveToPreviousState(
-        Order entityToMove,
+    public async Task<MoveToStateResult<TEntityErrorType>> MoveToPreviousState(
+        TEntity entityToMove,
         CancellationToken token
     )
     {
         var result = _pipeline.GetPreviousState(entityToMove);
         if (result.Item2 is not null)
-            return new MoveToStateResult<OrderValidationResultType>(IsError: true, result.Item2);
+            return new MoveToStateResult<TEntityErrorType>(IsError: true, result.Item2);
         if (Transitions.TryGetValue(result.Item1!, out var transition))
             return await DoWorkflowTransition(entityToMove, transition, token);
 
-        return new MoveToStateResult<OrderValidationResultType>(IsError: true,
-            WorkflowProcessError<OrderValidationResultType>.TransitionNotFoundError(
+        return new MoveToStateResult<TEntityErrorType>(IsError: true,
+            WorkflowProcessError<TEntityErrorType>.TransitionNotFoundError(
                 result.Item1!.TransitionFrom.ToString(),
                 result.Item1!.TransitionTo.ToString(),
                 entityToMove.Id.ToString()
             ));
     }
 
-    private async Task<MoveToStateResult<OrderValidationResultType>> DoWorkflowTransition(
-        Order entityToMove,
-        OrderStateTransition transition,
+    private async Task<MoveToStateResult<TEntityErrorType>> DoWorkflowTransition(
+        TEntity entityToMove,
+        TWorkflowTransition transition,
         CancellationToken token
     )
     {
@@ -136,40 +141,26 @@ internal abstract class OrderWorkflow : IWorkflow<Order, State.StateType, long, 
 
         return transitionResult.IsError
             ? transitionResult
-            : MoveToStateResult<OrderValidationResultType>.Ok;
-    }
-
-    protected class OrderStateTransition(
-        State.StateType fromState,
-        State.StateType toState,
-        Func<Order, CancellationToken, Task<MoveToStateResult<OrderValidationResultType>>> toStateFunction,
-        Func<Order, CancellationToken, Task<MoveToStateResult<OrderValidationResultType>>>[]? toStateMiddlewares = null
-    )
-        : WorkflowTransition<Order, long, State.StateType, OrderValidationResultType>(fromState, toState,
-            toStateFunction)
-    {
-        public readonly Func<Order, CancellationToken, Task<MoveToStateResult<OrderValidationResultType>>>[]
-            Middlewares =
-                toStateMiddlewares ?? [];
+            : MoveToStateResult<TEntityErrorType>.Ok;
     }
 
     private class WorkflowTransitionsPipeline
     {
-        private readonly Dictionary<State.StateType, State.StateType> _nextStates = new();
-        private readonly Dictionary<State.StateType, State.StateType> _previousStates = new();
+        private readonly Dictionary<TStateEnum, TStateEnum> _nextStates = new();
+        private readonly Dictionary<TStateEnum, TStateEnum> _previousStates = new();
 
-        public (OrderStateTransition.TransitionKey?, WorkflowProcessError<OrderValidationResultType>?) GetNextState(
-            Order entityToMove
+        public (WorkflowTransition<TEntity, TId, TStateEnum, TEntityErrorType>.TransitionKey?, WorkflowProcessError<TEntityErrorType>?) GetNextState(
+            TEntity entityToMove
         )
         {
             if (_nextStates.TryGetValue(entityToMove.State.Current, out var nextState))
                 return (
-                    new OrderStateTransition.TransitionKey(entityToMove.State.Current, nextState),
+                    new WorkflowTransition<TEntity, TId, TStateEnum, TEntityErrorType>.TransitionKey(entityToMove.State.Current, nextState),
                     null
                 );
             return (
                 null,
-                WorkflowProcessError<OrderValidationResultType>.TransitionNotFoundError(
+                WorkflowProcessError<TEntityErrorType>.TransitionNotFoundError(
                     entityToMove.State.Current.ToString(),
                     "NOT_FOUND",
                     entityToMove.Id.ToString()
@@ -177,18 +168,18 @@ internal abstract class OrderWorkflow : IWorkflow<Order, State.StateType, long, 
             );
         }
 
-        public (OrderStateTransition.TransitionKey?, WorkflowProcessError<OrderValidationResultType>?) GetPreviousState(
-            Order entityToMove
+        public (WorkflowTransition<TEntity, TId, TStateEnum, TEntityErrorType>.TransitionKey?, WorkflowProcessError<TEntityErrorType>?) GetPreviousState(
+            TEntity entityToMove
         )
         {
             if (_previousStates.TryGetValue(entityToMove.State.Current, out var previousState))
                 return (
-                    new OrderStateTransition.TransitionKey(entityToMove.State.Current, previousState),
+                    new WorkflowTransition<TEntity, TId, TStateEnum, TEntityErrorType>.TransitionKey(entityToMove.State.Current, previousState),
                     null
                 );
             return (
                 null,
-                WorkflowProcessError<OrderValidationResultType>.TransitionNotFoundError(
+                WorkflowProcessError<TEntityErrorType>.TransitionNotFoundError(
                     entityToMove.State.Current.ToString(),
                     "NOT_FOUND",
                     entityToMove.Id.ToString()
@@ -197,8 +188,8 @@ internal abstract class OrderWorkflow : IWorkflow<Order, State.StateType, long, 
         }
 
         public void AddNextState(
-            State.StateType currentState,
-            State.StateType nextState
+            TStateEnum currentState,
+            TStateEnum nextState
         )
         {
             if (_nextStates.TryGetValue(currentState, out _))
@@ -209,8 +200,8 @@ internal abstract class OrderWorkflow : IWorkflow<Order, State.StateType, long, 
         }
 
         public void AddPreviousState(
-            State.StateType currentState,
-            State.StateType previousState
+            TStateEnum currentState,
+            TStateEnum previousState
         )
         {
             if (_previousStates.TryGetValue(currentState, out _))

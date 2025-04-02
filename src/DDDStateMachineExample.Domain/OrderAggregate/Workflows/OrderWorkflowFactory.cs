@@ -7,7 +7,7 @@ namespace DDDStateMachineExample.Domain.OrderAggregate.Workflows;
 
 public class OrderWorkflowFactory
 {
-    public IWorkflow<Order, State.StateType, long, OrderValidationResultType> GetWorkflow(
+    public IWorkflow<Order, long, State.StateType, OrderValidationResultType> GetWorkflow(
         WorkflowId workflowId
     )
     {

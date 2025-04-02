@@ -12,8 +12,9 @@ public record MoveToStateResult<TEntityErrorType>(
     public static MoveToStateResult<TEntityErrorType> Ok => new(false, null);
 };
 
-public interface IWorkflow<in TEntity, in TState, TId, TEntityErrorType>
+public interface IWorkflow<in TEntity, TId, in TState, TEntityErrorType>
     where TEntity : Entity<TId>
+    where TState : Enum
     where TId : struct, IEquatable<TId>
     where TEntityErrorType : Enum
 {
