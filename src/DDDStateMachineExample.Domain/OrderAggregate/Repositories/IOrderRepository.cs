@@ -16,6 +16,14 @@ public interface IOrderRepository : IRepository<Order>
     Task<Order> Get(long orderId, CancellationToken token);
     
     /// <summary>
+    /// Создание сущности заявки в хранилище.
+    /// </summary>
+    /// <param name="order">Заявка для обновления.</param>
+    /// <param name="token">Токен отмены операции.</param>
+    /// <returns>Задача.</returns>
+    Task<Order> Create(Order order, CancellationToken token);
+    
+    /// <summary>
     /// Обновления сущности заявки.
     /// </summary>
     /// <param name="order">Заявка для обновления.</param>

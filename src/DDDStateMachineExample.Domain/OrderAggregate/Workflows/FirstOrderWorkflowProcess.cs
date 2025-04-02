@@ -16,14 +16,16 @@ internal class FirstOrderWorkflowProcess : OrderWorkflow
                 fromState: State.StateType.New,
                 toState: State.StateType.EditPropertiesStepOne,
                 toStateFunction: FromNew_ToEditPropertiesStepOne
-            )
+            ),
+            MoveDirection.Next
         );
         AddTransition(
             new OrderStateTransition(
                 fromState: State.StateType.EditPropertiesStepOne,
                 toState: State.StateType.New,
                 toStateFunction: FromEditPropertiesStepOne_ToNew
-            )
+            ),
+            MoveDirection.Previous
         );
         AddTransition(
             new OrderStateTransition(
@@ -42,7 +44,8 @@ internal class FirstOrderWorkflowProcess : OrderWorkflow
                 fromState: State.StateType.EditPropertiesStepOne,
                 toState: State.StateType.WaitingForRegistration,
                 toStateFunction: FromEditPropertiesStepOne_ToWaitingForRegistration
-            )
+            ),
+            MoveDirection.Next
         );
         AddTransition(
             new OrderStateTransition(

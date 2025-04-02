@@ -16,7 +16,9 @@ public static class ServiceCollectionExtensions
     private static IServiceCollection AddHandlers(this IServiceCollection services)
     {
         return services
+            .AddScoped<IOrderCreateHandler, OrderCreate>()
             .AddScoped<IOrderWorkflowNextStepHandler, OrderWorkflowNextStep>()
-            .AddScoped<IOrderWorkflowPreviousStepHandler, OrderWorkflowPreviousStep>();
+            .AddScoped<IOrderWorkflowPreviousStepHandler, OrderWorkflowPreviousStep>()
+            .AddScoped<IGetWorkflowByRuleHandler, GetWorkflowByRule>();
     }
 }

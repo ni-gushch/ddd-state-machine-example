@@ -1,4 +1,6 @@
+using DDDStateMachineExample.Api.Models;
 using DDDStateMachineExample.Application.Handlers;
+using DDDStateMachineExample.Domain.Common.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DDDStateMachineExample.Api.Controllers;
@@ -7,6 +9,16 @@ namespace DDDStateMachineExample.Api.Controllers;
 [Route("/api/order")]
 public class OrderController : ControllerBase
 {
+    [HttpPost()]
+    public async Task<OrderCreateViewModel> Create([FromBody] OrderCreateInputModel input,
+        [FromServices] IOrderCreateHandler handler,
+        CancellationToken token)
+    {
+        var result = await handler.Handle(new IOrderCreateHandler.Request(new WorkflowId(input.WorkflowId)), token);
+
+        return new OrderCreateViewModel(result.CreatedOrder.Id);
+    }
+    
     [HttpPost("state/next")]
     public async Task Next([FromQuery] long orderId,
         [FromServices] IOrderWorkflowNextStepHandler nextStepHandler,
