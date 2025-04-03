@@ -5,7 +5,7 @@ using DDDStateMachineExample.Domain.OrderAggregate.ValueObjects;
 
 namespace DDDStateMachineExample.Domain.OrderAggregate.Workflows;
 
-internal class FirstOrderWorkflowProcess : OrderWorkflow
+internal class FirstOrderWorkflowProcess : BaseOrderWorkflow
 {
     public FirstOrderWorkflowProcess()
     {

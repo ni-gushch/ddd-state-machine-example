@@ -7,7 +7,7 @@ using JustPlatform.Domain;
 
 namespace DDDStateMachineExample.Domain.OrderAggregate;
 
-public sealed class Order : Entity<long>, IAggregateRoot
+public sealed class Order : Entity<long>, IAggregateRoot, IEntityWithState<State, State.StateType>
 {
     public override long Id { get; protected set; }
 
@@ -32,7 +32,7 @@ public sealed class Order : Entity<long>, IAggregateRoot
             workflowId: workflowId);
     }
 
-    public static Order CreateNewInstance(long id, State state, WorkflowId workflowId)
+    public static Order CreateInstance(long id, State state, WorkflowId workflowId)
     {
         return new Order(
             id: id,
